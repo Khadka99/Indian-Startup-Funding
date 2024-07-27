@@ -6,7 +6,7 @@ import datetime as dt
 
 st.set_page_config(layout='wide',page_title='Startup Analysis')
 
-df = pd.read_csv('clean_stratup.csv')
+df = pd.read_csv('clean_startup_funding.csv')
 df['date'] = pd.to_datetime(df['date'],format = 'mixed',errors = 'coerce')
 df['year'] = df['date'].dt.year
 df['month'] = df['date'].dt.month
@@ -114,6 +114,9 @@ def load_investors_detail(investor):
     ax4.plot(year_series.index, year_series.values)
 
     st.pyplot(fig4)
+def load_statup_analysis(startup):
+    st.title("Startup Analysis")
+
 
 st.sidebar.title("Stratup Funding Analysis")
 
@@ -125,9 +128,11 @@ if option == 'Overall Analysis':
         load_overall_analysis()
 
 elif option == 'Startup':
-    st.sidebar.selectbox('Select Startup',sorted(df['startup'].unique().tolist()))
+    select_startup = st.sidebar.selectbox('Select Startup',sorted(df['startup'].unique().tolist()))
     btn1 = st.sidebar.button('Find Startup Detalis')
-    st.title('Startup Analysis')
+    #st.title('Startup Analysis')
+    if btn1:
+        load_statup_analysis(select_startup)
 else:
     select_investor = st.sidebar.selectbox('Select Investor', sorted(set(df['investor'].str.split(',').sum())))
     btn2 = st.sidebar.button('Find Investors Detalis')
