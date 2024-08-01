@@ -2,18 +2,21 @@ import streamlit as st
 import pandas as  pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import datetime as dt
 
 st.set_page_config(layout='wide',page_title='Startup Analysis')
 
 df = pd.read_csv('clean_startup_funding.csv')
-df['date'] = pd.to_datetime(df['date'],format = 'mixed',errors = 'coerce')
-df['year'] = df['date'].dt.year
-df['month'] = df['date'].dt.month
 
 
+# df['date'] = pd.to_datetime(df['date'],format = 'mixed',errors = 'coerce')
+# df['year'] = df['date'].dt.year
+# df['month'] = df['date'].dt.month
 #st.dataframe(df)
 #df['Investors Name'] = df['Investors Name'].fillna('Undisclosed')
+
+
 
 def load_overall_analysis():
     st.title("Overall Analysis")
@@ -45,10 +48,12 @@ def load_overall_analysis():
 
     temp_df['x_axis'] = temp_df['month'].astype('str') + '-' + temp_df['year'].astype('str')
 
-    fig5, ax5 = plt.subplots()
+    fig5, ax5 = plt.subplots(figsize=(15, 6))
     ax5.plot(temp_df['x_axis'], temp_df['amount'])
+    plt.xticks(rotation=60)
 
     st.pyplot(fig5)
+
 # Top sectors funded
     st.subheader('Top Sectors Funded')
     selected_option = st.selectbox('Select Type',['Amount','Count'])
@@ -61,11 +66,78 @@ def load_overall_analysis():
     ax6.pie(top_sector, labels=top_sector.index, autopct="%0.01f%%")
 
     st.pyplot(fig6)
+    # Most amount funded round
+    st.subheader("Top 5 Most Amount Funded Rounds")
+    selected_option = st.selectbox('Select Type',['Total Amount','Total Count'])
+    if selected_option == 'Total Amount':
+        df_round = df.groupby('round')['amount'].sum().sort_values(ascending=False).head()
+    else:
+        df_round = df.groupby('round')['amount'].count().sort_values(ascending=False).head()
+    fig7, ax7 = plt.subplots()
+    ax7.pie(df_round, labels=df_round.index, autopct="%0.01f%%")
+    st.pyplot(fig7)
+
+    st.subheader("Top 10 City wise Funding")
+    df_city = df.groupby('city')['amount'].sum().sort_values(ascending=False).head(10)
+    color = ['red', 'green', 'yellow', 'blue', 'orange', 'black', 'purple','lightblue','grey','pink']
+    fig8, ax8 = plt.subplots(figsize=(10,6))
+    bars = ax8.bar(df_city.index,df_city.values,color = color)
+    for bar in bars:
+        yval = bar.get_height()
+        # Position the text inside the bar
+        ax8.text(
+            bar.get_x() + bar.get_width() / 2.0,  # x position (center of the bar)
+            yval - 1,  # y position (just below the top of the bar, adjust as needed)
+            round(yval),  # Text to display
+            ha='center',  # Horizontal alignment
+            va='center',  # Vertical alignment
+            color='black',  # Text color
+            fontsize=10  # Font size
+        )
+    plt.xticks(rotation=90)
+    st.pyplot(fig8)
+#Maximum Amount funded In A startup In Each Year
+    st.subheader('Maximum Amount funded In A startup In Each Year')
+    def max_amt_startup():
+        max_amt = df.groupby('year')['amount'].transform('max')
+        result = df[df['amount'] == max_amt]
+        result = result[['year', 'startup', 'amount']]
+        return (result)
+    max_amt = max_amt_startup()
+    st.dataframe(max_amt)
+
+#Top Investor
+    st.subheader("Top Investor For The Year")
+    def top_investor():
+        max_amt = df.groupby('year')['amount'].transform('max')
+        result = df[df['amount'] == max_amt]
+        result = result[['year','investor','amount']]
+        return(result)
+    top_inv = top_investor()
+    st.dataframe(top_inv)
+
+
+    # Heatmap for funding
+    st.subheader("Funding Heatmap")
+    total_funding = round(df.groupby(['year', 'month'])['amount'].sum()).reset_index()
+
+    # Pivot the data to prepare for plotting
+    pivot_df = total_funding.pivot(index='month', columns='year', values='amount')
+
+    # Plotting using seaborn heatmap
+    fig9, ax9 = plt.subplots(figsize=(10, 6))
+    sns.heatmap(pivot_df, annot=True, cmap='viridis', fmt='.1f')
+    ax9.set_title('Total Funding Amount by Month and Year')
+    ax9.set_xlabel('Year')
+    ax9.set_ylabel('Month')
+    st.pyplot(fig9)
+
+
 
 
 def load_investors_detail(investor):
     st.title(investor)
-    #load the recent 5 invetment of the investor
+ #load the recent 5 invetment of the investor
     last5_df = df[df['investor'].str.contains(investor)].head()[['date', 'startup', 'vertical', 'city', 'round', 'amount']]
     st.subheader('Most Recent Investment')
     st.dataframe(last5_df)
@@ -114,8 +186,9 @@ def load_investors_detail(investor):
     ax4.plot(year_series.index, year_series.values)
 
     st.pyplot(fig4)
-def load_statup_analysis(startup):
+def load_startup_analysis(startup):
     st.title("Startup Analysis")
+
 
 
 st.sidebar.title("Stratup Funding Analysis")
