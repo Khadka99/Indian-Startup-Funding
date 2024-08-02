@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime as dt
 
-st.set_page_config(layout='wide',page_title='Startup Analysis')
+st.set_page_config(layout='wide',page_title='Indian Startup Analysis')
 
 df = pd.read_csv('clean_startup_funding.csv')
 
@@ -53,29 +53,31 @@ def load_overall_analysis():
     plt.xticks(rotation=60)
 
     st.pyplot(fig5)
+    col1,col2 = st.columns(2)
 
-# Top sectors funded
-    st.subheader('Top Sectors Funded')
-    selected_option = st.selectbox('Select Type',['Amount','Count'])
-    if selected_option == "Amount":
-        top_sector = df.groupby(['vertical'])['amount'].sum().sort_values(ascending=False).head()
-    else:
-        top_sector = df.groupby(['vertical'])['amount'].count().sort_values(ascending=False).head()
+    with col1:
+    # Top sectors funded
+        st.subheader('Top Sectors Funded')
+        selected_option = st.selectbox('Select Type',['Amount','Count'])
+        if selected_option == "Amount":
+            top_sector = df.groupby(['vertical'])['amount'].sum().sort_values(ascending=False).head()
+        else:
+            top_sector = df.groupby(['vertical'])['amount'].count().sort_values(ascending=False).head()
 
-    fig6, ax6 = plt.subplots()
-    ax6.pie(top_sector, labels=top_sector.index, autopct="%0.01f%%")
-
-    st.pyplot(fig6)
-    # Most amount funded round
-    st.subheader("Top 5 Most Amount Funded Rounds")
-    selected_option = st.selectbox('Select Type',['Total Amount','Total Count'])
-    if selected_option == 'Total Amount':
-        df_round = df.groupby('round')['amount'].sum().sort_values(ascending=False).head()
-    else:
-        df_round = df.groupby('round')['amount'].count().sort_values(ascending=False).head()
-    fig7, ax7 = plt.subplots()
-    ax7.pie(df_round, labels=df_round.index, autopct="%0.01f%%")
-    st.pyplot(fig7)
+        fig6, ax6 = plt.subplots()
+        ax6.pie(top_sector, labels=top_sector.index, autopct="%0.01f%%")
+        st.pyplot(fig6)
+    with col2:
+        # Most amount funded round
+        st.subheader("Top 5 Most Amount Funded Rounds")
+        selected_option = st.selectbox('Select Type',['Total Amount','Total Count'])
+        if selected_option == 'Total Amount':
+            df_round = df.groupby('round')['amount'].sum().sort_values(ascending=False).head()
+        else:
+            df_round = df.groupby('round')['amount'].count().sort_values(ascending=False).head()
+        fig7, ax7 = plt.subplots()
+        ax7.pie(df_round, labels=df_round.index, autopct="%0.01f%%")
+        st.pyplot(fig7)
 
     st.subheader("Top 10 City wise Funding")
     df_city = df.groupby('city')['amount'].sum().sort_values(ascending=False).head(10)
@@ -96,25 +98,29 @@ def load_overall_analysis():
         )
     plt.xticks(rotation=90)
     st.pyplot(fig8)
-#Maximum Amount funded In A startup In Each Year
-    st.subheader('Maximum Amount funded In A startup In Each Year')
-    def max_amt_startup():
-        max_amt = df.groupby('year')['amount'].transform('max')
-        result = df[df['amount'] == max_amt]
-        result = result[['year', 'startup', 'amount']]
-        return (result)
-    max_amt = max_amt_startup()
-    st.dataframe(max_amt)
 
-#Top Investor
-    st.subheader("Top Investor For The Year")
-    def top_investor():
-        max_amt = df.groupby('year')['amount'].transform('max')
-        result = df[df['amount'] == max_amt]
-        result = result[['year','investor','amount']]
-        return(result)
-    top_inv = top_investor()
-    st.dataframe(top_inv)
+    col1,col2 = st.columns(2)
+    with col1:
+#Maximum Amount funded In A startup In Each Year
+        st.subheader('Startup Funded Year Wise')
+        def max_amt_startup():
+            max_amt = df.groupby('year')['amount'].transform('max')
+            result = df[df['amount'] == max_amt]
+            result = result[['year', 'startup', 'amount']].sort_values('year')
+            return (result)
+        max_amt = max_amt_startup()
+        st.dataframe(max_amt,width=700,hide_index=True)
+    with col2:
+        # Max amount funded year wise to the startup
+        st.subheader("Startup/Investor Year Wise")
+        def top_investor_in_startup():
+            max_amt = df.groupby('year')['amount'].transform('max')
+            result = df[df['amount'] == max_amt]
+            result = result[['year', 'investor', 'startup', 'amount']].sort_values('year')
+            return (result)
+
+        max_fund = top_investor_in_startup()
+        st.dataframe(max_fund,width=700,hide_index=True)
 
 
     # Heatmap for funding
@@ -205,7 +211,7 @@ elif option == 'Startup':
     btn1 = st.sidebar.button('Find Startup Detalis')
     #st.title('Startup Analysis')
     if btn1:
-        load_statup_analysis(select_startup)
+        load_startup_analysis(select_startup)
 else:
     select_investor = st.sidebar.selectbox('Select Investor', sorted(set(df['investor'].str.split(',').sum())))
     btn2 = st.sidebar.button('Find Investors Detalis')
