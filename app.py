@@ -8,6 +8,17 @@ import datetime as dt
 st.set_page_config(layout='wide',page_title='Indian Startup Analysis')
 
 df = pd.read_csv('clean_startup_funding.csv')
+df['amount'] = df['amount'].replace(0,0.0000001)
+
+
+def check_nan(df):
+    # Iterate through each column in the DataFrame
+    for column in df.columns:
+        if df[column].isnull().any():
+            df[column].fillna('Information Not Available', inplace=True)
+
+    # Return the updated DataFrame
+    return df
 
 
 # df['date'] = pd.to_datetime(df['date'],format = 'mixed',errors = 'coerce')
@@ -103,24 +114,18 @@ def load_overall_analysis():
     with col1:
 #Maximum Amount funded In A startup In Each Year
         st.subheader('Startup Funded Year Wise')
-        def max_amt_startup():
-            max_amt = df.groupby('year')['amount'].transform('max')
-            result = df[df['amount'] == max_amt]
-            result = result[['year', 'startup', 'amount']].sort_values('year')
-            return (result)
-        max_amt = max_amt_startup()
-        st.dataframe(max_amt,width=700,hide_index=True)
+
+        max_amt = df.groupby('year')['amount'].transform('max')
+        result = df[df['amount'] == max_amt]
+        result = result[['year', 'startup', 'amount']].sort_values('year')
+        st.dataframe(result,width=700,hide_index=True)
     with col2:
         # Max amount funded year wise to the startup
         st.subheader("Startup/Investor Year Wise")
-        def top_investor_in_startup():
-            max_amt = df.groupby('year')['amount'].transform('max')
-            result = df[df['amount'] == max_amt]
-            result = result[['year', 'investor', 'startup', 'amount']].sort_values('year')
-            return (result)
-
-        max_fund = top_investor_in_startup()
-        st.dataframe(max_fund,width=700,hide_index=True)
+        max_amt = df.groupby('year')['amount'].transform('max')
+        result = df[df['amount'] == max_amt]
+        result = result[['year', 'investor', 'startup', 'amount']].sort_values('year')
+        st.dataframe(result,width=700,hide_index=True)
 
 
     # Heatmap for funding
@@ -141,6 +146,13 @@ def load_overall_analysis():
 
 
 
+
+
+
+
+
+
+
 def load_investors_detail(investor):
     st.title(investor)
  #load the recent 5 invetment of the investor
@@ -157,33 +169,46 @@ def load_investors_detail(investor):
     with col2:
         st.subheader('Biggest Investment Chart')
         fig, ax = plt.subplots()
-        ax.bar(big_series.index,big_series.values)
-
+        bars = ax.bar(big_series.index,big_series.values)
+        for bar in bars:
+            yval = bar.get_height()
+            # Position the text inside the bar
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,  # x position (center of the bar)
+                yval - 1,  # y position (just below the top of the bar, adjust as needed)
+                round(yval),  # Text to display
+                ha='center',  # Horizontal alignment
+                va='center',  # Vertical alignment
+                color='black',  # Text color
+                fontsize=12  # Font size
+            )
         st.pyplot(fig)
 
-    vertical_series = df[df['investor'].str.contains(investor)].groupby('vertical')['amount'].sum().sort_values(
-        ascending=False).head(7)
+    col1,col2,col3 = st.columns(3)
+    with col1:
+        vertical_series = df[df['investor'].str.contains(investor)].groupby('vertical')['amount'].sum().sort_values(
+            ascending=False).head(7)
 
-    st.subheader('Top 7 Sectors Invested In')
-    fig1, ax1 = plt.subplots()
-    ax1.pie(vertical_series,labels=vertical_series.index,autopct="%0.01f%%")
+        st.subheader('Top 7 Sectors Invested In')
+        fig1, ax1 = plt.subplots(figsize=(10,5))
+        ax1.pie(vertical_series,labels=vertical_series.index,autopct="%0.01f%%")
 
-    st.pyplot(fig1)
+        st.pyplot(fig1)
+    with col2:
+        stage_series = df[df['investor'].str.contains(investor)].groupby('round')['amount'].sum().sort_values(ascending=False)
 
-    stage_series = df[df['investor'].str.contains(investor)].groupby('round')['amount'].sum().sort_values(ascending=False)
+        st.subheader('Stages Invested In')
+        fig2, ax2 = plt.subplots(figsize=(10,5))
+        ax2.pie(stage_series, labels=stage_series.index, autopct="%0.01f%%")
 
-    st.subheader('Stages Invested In')
-    fig2, ax2 = plt.subplots()
-    ax2.pie(stage_series, labels=stage_series.index, autopct="%0.01f%%")
+        st.pyplot(fig2)
+    with col3:
+        city_series = df[df['investor'].str.contains(investor)].groupby('city')['amount'].sum().sort_values(ascending=False).head()
+        st.subheader('City Invested In')
+        fig3, ax3 = plt.subplots()
+        ax3.pie(city_series, labels=city_series.index, autopct="%0.01f%%")
 
-    st.pyplot(fig2)
-
-    city_series = df[df['investor'].str.contains(investor)].groupby('city')['amount'].sum().sort_values(ascending=False).head()
-    st.subheader('City Invested In')
-    fig3, ax3 = plt.subplots()
-    ax3.pie(city_series, labels=city_series.index, autopct="%0.01f%%")
-
-    st.pyplot(fig3)
+        st.pyplot(fig3)
 
     st.subheader('Year On Year Investment')
     year_series = df[df['investor'].str.contains(investor)].groupby('year')['amount'].sum()
@@ -192,16 +217,70 @@ def load_investors_detail(investor):
     ax4.plot(year_series.index, year_series.values)
 
     st.pyplot(fig4)
+
+
+
+
+
+
+
+
 def load_startup_analysis(startup):
-    st.title("Startup Analysis")
+    #Startup Details
+        st.subheader("Startup Details")
+        filtered_df = df[df['startup'] == startup]
+        result = filtered_df[['year','startup','vertical','SubVertical','investor','city','amount']]
+        st.dataframe(check_nan(result),hide_index=True)
+        col1,col2 = st.columns(2)
+        with col1:
+            # Investment Round Year Wise
+            st.subheader("Round Year Wise :-")
+            st.subheader(startup)
+            round_amt = df[df['startup'] == startup].groupby(['year' ,'round'])['amount'].sum().reset_index()
+            st.dataframe(round_amt,hide_index=True)
+        with col2:
+            # Investment Round Year Wise Chart
+             st.subheader("Investment Round Year Wise Chart")
+             round_year = df[df['startup'] == startup].groupby(['year', 'round'])['amount'].sum()
+            # fig10, ax10 = plt.subplots()
+            # ax10.pie(round_year, labels=round_year.index, autopct="%0.01f%%")
+            # st.pyplot(fig10)
+             if round_year.empty:
+                st.write(f"No data available to plot for the startup '{startup}'.")
+             else:
+                fig10, ax10 = plt.subplots()
+                ax10.pie(round_year, labels=round_year.index, autopct="%0.01f%%")
+                st.pyplot(fig10)
 
 
+
+        # Similar Startup
+        st.subheader("Similar Startup")
+        demo_df = df[df['startup'] == startup]
+        result = df[
+            (df['vertical'] == demo_df['vertical'].values[0]) | (df['SubVertical'] == demo_df['SubVertical'].values[0])]
+        result = result[['year', 'startup', 'vertical','SubVertical', 'amount']]
+        st.dataframe(result,hide_index=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################################################################################
 
 st.sidebar.title("Stratup Funding Analysis")
 
 option = st.sidebar.selectbox('Select one',['Overall Analysis','Startup','Investor'])
 if option == 'Overall Analysis':
-
     # btn0 = st.sidebar.button('Show Overall Analysis')
     # if btn0:
         load_overall_analysis()
@@ -209,7 +288,6 @@ if option == 'Overall Analysis':
 elif option == 'Startup':
     select_startup = st.sidebar.selectbox('Select Startup',sorted(df['startup'].unique().tolist()))
     btn1 = st.sidebar.button('Find Startup Detalis')
-    #st.title('Startup Analysis')
     if btn1:
         load_startup_analysis(select_startup)
 else:
