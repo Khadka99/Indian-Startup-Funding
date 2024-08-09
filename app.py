@@ -8,7 +8,7 @@ import datetime as dt
 st.set_page_config(layout='wide',page_title='Indian Startup Analysis')
 
 df = pd.read_csv('clean_startup_funding.csv')
-df['amount'] = df['amount'].replace(0,0.0000001)
+df['amount'] = df['amount'].replace(0,0.000001)
 
 
 def check_nan(df):
@@ -20,12 +20,6 @@ def check_nan(df):
     # Return the updated DataFrame
     return df
 
-
-# df['date'] = pd.to_datetime(df['date'],format = 'mixed',errors = 'coerce')
-# df['year'] = df['date'].dt.year
-# df['month'] = df['date'].dt.month
-#st.dataframe(df)
-#df['Investors Name'] = df['Investors Name'].fillna('Undisclosed')
 
 
 
@@ -48,7 +42,7 @@ def load_overall_analysis():
     with col3:
         st.metric('Average Funding',str(avg_funding) + ' CR')
     with col4:
-        st.metric('Number of startup',str(num_startup) + ' CR')
+        st.metric('Number of startup',str(num_startup))
 
     st.subheader('Month On Month Graph')
     selected_option = st.selectbox('Select Type',['Total','Count'])
@@ -162,27 +156,47 @@ def load_investors_detail(investor):
 
     col1,col2 = st.columns(2)
     with col1:
-        # Biggest investment
-        big_series = df[df['investor'].str.contains(investor)].groupby('startup')['amount'].sum().sort_values(ascending=False).head()
         st.subheader('Biggest Investment')
-        st.dataframe(big_series)
+        if investor:
+                big_series = df[df['investor'].str.contains(investor)] \
+                    .groupby('startup')['amount'].sum()\
+                    .sort_values(ascending=False)\
+                    .head(5)
+                st.dataframe(big_series)
+
+
     with col2:
         st.subheader('Biggest Investment Chart')
-        fig, ax = plt.subplots()
-        bars = ax.bar(big_series.index,big_series.values)
-        for bar in bars:
-            yval = bar.get_height()
-            # Position the text inside the bar
-            ax.text(
-                bar.get_x() + bar.get_width() / 2.0,  # x position (center of the bar)
-                yval - 1,  # y position (just below the top of the bar, adjust as needed)
-                round(yval),  # Text to display
-                ha='center',  # Horizontal alignment
-                va='center',  # Vertical alignment
-                color='black',  # Text color
-                fontsize=12  # Font size
-            )
-        st.pyplot(fig)
+        if big_series.empty:
+            st.write(f"No data available to plot for the investor '{investor}'.")
+        else:
+            # Create a smaller figure
+            fig0, ax0 = plt.subplots(figsize=(8, 6))  # Adjust figsize as necessary
+
+            # Plotting
+            bars = ax0.bar(big_series.index, big_series.values)
+
+            # Adding text labels on the bars
+            for bar in bars:
+                yval = bar.get_height()
+                ax0.text(
+                    bar.get_x() + bar.get_width() / 2.0,  # x position (center of the bar)
+                    yval + 0.01 * yval,  # y position (just above the top of the bar, adjust as needed)
+                    round(yval),  # Text to display
+                    ha='center',  # Horizontal alignment
+                    va='bottom',  # Vertical alignment
+                    color='black',  # Text color
+                    fontsize=10  # Font size
+                )
+            st.pyplot(fig0)
+
+            #Improve layout and avoid overlap
+            #plt.xticks(rotation=45, ha='right')
+
+
+
+
+
 
     col1,col2,col3 = st.columns(3)
     with col1:
